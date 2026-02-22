@@ -6,6 +6,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 # ── System packages ────────────────────────────────────────────────────────
 RUN apt-get update && apt-get install -y --no-install-recommends \
     openssh-server \
+    nginx \
     sudo \
     gosu \
     curl \

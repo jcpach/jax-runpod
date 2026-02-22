@@ -4,10 +4,30 @@ set -e
 APP_USER="${APP_USER:-jaxuser}"
 APP_HOME=$(eval echo "~${APP_USER}")
 
-# ── SSH setup (must run as root to start sshd) ────────────────────────────
+# -------------------------------------------------------------------------- #
+#                          Function Definitions                              #
+# -------------------------------------------------------------------------- #
+
+# Start nginx (required for RunPod's port proxy system)
+start_nginx() {
+  echo "Starting nginx..."
+  service nginx start
+}
+
+# Execute hook script if it exists (RunPod convention)
+execute_script() {
+  local script_path=$1
+  local script_msg=$2
+  if [[ -f "${script_path}" ]]; then
+    echo "${script_msg}"
+    bash "${script_path}"
+  fi
+}
+
+# Setup SSH — keys go into jaxuser's home, not root's
 setup_ssh() {
   if [[ -n "${PUBLIC_KEY:-}" ]]; then
-    # Install key into the user's home, not root's
+    echo "Setting up SSH for ${APP_USER}..."
     local ssh_dir="${APP_HOME}/.ssh"
     mkdir -p "$ssh_dir"
     echo "$PUBLIC_KEY" >> "${ssh_dir}/authorized_keys"
@@ -15,22 +35,29 @@ setup_ssh() {
     chmod 700 "$ssh_dir"
     chmod 600 "${ssh_dir}/authorized_keys"
 
-    # Generate host keys if missing
-    mkdir -p /etc/ssh
-    [[ -f /etc/ssh/ssh_host_rsa_key ]]     || ssh-keygen -t rsa     -f /etc/ssh/ssh_host_rsa_key     -q -N ''
-    [[ -f /etc/ssh/ssh_host_ecdsa_key ]]   || ssh-keygen -t ecdsa   -f /etc/ssh/ssh_host_ecdsa_key   -q -N ''
-    [[ -f /etc/ssh/ssh_host_ed25519_key ]] || ssh-keygen -t ed25519 -f /etc/ssh/ssh_host_ed25519_key -q -N ''
+    # Generate host keys if missing and print fingerprints
+    for type in rsa ecdsa ed25519; do
+      local keyfile="/etc/ssh/ssh_host_${type}_key"
+      if [[ ! -f "$keyfile" ]]; then
+        ssh-keygen -t "$type" -f "$keyfile" -q -N ''
+      fi
+    done
 
-    mkdir -p /run/sshd
-    /usr/sbin/sshd
-    echo "SSH started (login as: ${APP_USER})."
+    service ssh start
+
+    echo "SSH host key fingerprints:"
+    for key in /etc/ssh/ssh_host_*.pub; do
+      ssh-keygen -lf "$key"
+    done
+    echo "SSH ready — login as: ${APP_USER}"
   else
     echo "PUBLIC_KEY not set — SSH disabled."
   fi
 }
 
-# ── Export env vars so they survive into SSH sessions ──────────────────────
+# Export env vars so they persist into SSH sessions
 export_env_vars() {
+  echo "Exporting environment variables..."
   printenv \
     | grep -E '^[A-Z_][A-Z0-9_]*=' \
     | grep -v '^PUBLIC_KEY=' \
@@ -47,31 +74,45 @@ export_env_vars() {
   fi
 }
 
-# ── JupyterLab (runs as non-root user) ────────────────────────────────────
+# Start JupyterLab as non-root on port 8889 (nginx proxies 8888 → 8889)
 start_jupyter() {
   if [[ -n "${JUPYTER_PASSWORD:-}" ]]; then
-    echo "Starting JupyterLab on :8888 as ${APP_USER}..."
+    echo "Starting JupyterLab on :8889 as ${APP_USER}..."
+    mkdir -p /workspace
+    chown "${APP_USER}:${APP_USER}" /workspace
     sudo -u "${APP_USER}" nohup python3 -m jupyter lab \
-      --allow-root=False --no-browser \
-      --port=8888 --ip=* \
+      --no-browser \
+      --port=8889 --ip=127.0.0.1 \
       --FileContentsManager.delete_to_trash=False \
       --ServerApp.terminado_settings='{"shell_command":["/bin/bash"]}' \
       --IdentityProvider.token="$JUPYTER_PASSWORD" \
       --ServerApp.allow_origin=* \
       --ServerApp.preferred_dir=/workspace \
       > /tmp/jupyter.log 2>&1 &
-    echo "JupyterLab started."
+    echo "JupyterLab started (proxied via nginx on :8888)."
   fi
 }
 
-echo "=== Pod starting ==="
+# -------------------------------------------------------------------------- #
+#                               Main Program                                 #
+# -------------------------------------------------------------------------- #
+
+start_nginx
+
+execute_script "/pre_start.sh" "Running pre-start script..."
+
+echo "Pod started."
+
 setup_ssh
-export_env_vars
 start_jupyter
+export_env_vars
 
 echo "=== JAX pod ready (user: ${APP_USER}) ==="
 sudo -u "${APP_USER}" python3 -c "import jax; print(f'JAX {jax.__version__} — devices: {jax.devices()}')" 2>/dev/null || true
 
+execute_script "/post_start.sh" "Running post-start script..."
+
+echo "Start script(s) finished, pod is ready to use."
+
 # Drop privileges — PID 1 continues as non-root
-echo "Dropping to ${APP_USER}..."
 exec gosu "${APP_USER}" sleep infinity

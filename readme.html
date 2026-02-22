@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>JAX Pod — Starting</title>
+    <meta http-equiv="refresh" content="5">
+    <style>
+        body { font-family: system-ui, sans-serif; max-width: 600px; margin: 80px auto; padding: 0 20px; color: #e0e0e0; background: #1a1a2e; }
+        h1 { color: #7c83ff; }
+        .spinner { display: inline-block; width: 20px; height: 20px; border: 3px solid #333; border-top-color: #7c83ff; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        code { background: #16213e; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+    <h1><span class="spinner"></span> JAX Pod Starting...</h1>
+    <p>Services are still initializing. This page will auto-refresh.</p>
+    <h3>What's in this container</h3>
+    <p>
+        <code>ghcr.io/nvidia/jax:jax</code> — JAX, jaxlib, Flax, and Transformer Engine
+        built from source with NVIDIA's XLA optimizations.
+    </p>
+    <h3>Access methods</h3>
+    <p>
+        <strong>SSH:</strong> <code>ssh jaxuser@&lt;host&gt; -p &lt;port&gt; -i ~/.ssh/id_ed25519</code><br>
+        <strong>Jupyter:</strong> Will appear here once ready.
+    </p>
+</body>
+</html>
