@@ -1,0 +1,17 @@
+# ── Core JAX ecosystem ─────────────────────────────────────────────────────
+# JAX, jaxlib, Flax, and Transformer Engine are already installed from source
+# in the base image (ghcr.io/nvidia/jax:jax) with NVIDIA's XLA optimizations.
+# Do NOT reinstall them from pip — it would overwrite the optimized builds.
+
+# jax-ai-stack extras only (grain) — use --no-deps where needed
+grain-nightly
+
+# Additional JAX libraries
+optax
+orbax-checkpoint
+
+# ── General ────────────────────────────────────────────────────────────────
+jupyterlab
+matplotlib>=3.10.8
+polars>=1.38.1
+tqdm>=4.67.3
