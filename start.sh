@@ -78,14 +78,16 @@ export_env_vars() {
 start_jupyter() {
   if [[ -n "${JUPYTER_PASSWORD:-}" ]]; then
     echo "Starting JupyterLab on :8889 as ${APP_USER}..."
-    sudo -u "${APP_USER}" nohup python3 -m jupyter lab \
+    local jupyter_dir="${APP_HOME}"
+    [[ -d /workspace ]] && jupyter_dir="/workspace"
+    sudo -E -u "${APP_USER}" nohup python3 -m jupyter lab \
       --no-browser \
       --port=8889 --ip=127.0.0.1 \
       --FileContentsManager.delete_to_trash=False \
       --ServerApp.terminado_settings='{"shell_command":["/bin/bash"]}' \
       --IdentityProvider.token="$JUPYTER_PASSWORD" \
       --ServerApp.allow_origin=* \
-      --ServerApp.preferred_dir=/workspace \
+      --FileContentsManager.preferred_dir="$jupyter_dir" \
       > /tmp/jupyter.log 2>&1 &
     echo "JupyterLab started (proxied via nginx on :8888)."
   fi
@@ -106,7 +108,7 @@ start_jupyter
 export_env_vars
 
 echo "=== JAX pod ready (user: ${APP_USER}) ==="
-sudo -u "${APP_USER}" python3 -c "import jax; print(f'JAX {jax.__version__} — devices: {jax.devices()}')" 2>/dev/null || true
+sudo -E -u "${APP_USER}" python3 -c "import jax; print(f'JAX {jax.__version__} — devices: {jax.devices()}')" 2>/dev/null || true
 
 execute_script "/post_start.sh" "Running post-start script..."
 
