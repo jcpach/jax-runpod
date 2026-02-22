@@ -37,20 +37,25 @@ RUN sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin no/'              /etc/ssh/s
     && sed -i 's/^#\?MaxAuthTries.*/MaxAuthTries 3/'                      /etc/ssh/sshd_config \
     && echo "AllowUsers ${USERNAME}" >> /etc/ssh/sshd_config
 
-# ── Python packages (as user) ─────────────────────────────────────────────
+# ── Python packages ───────────────────────────────────────────────────────
+# IMPORTANT: The base image has JAX, jaxlib, Flax, and Transformer Engine
+# installed from source with NVIDIA's XLA optimizations and custom patches.
+# Do NOT pip install jax[cuda] or jax-ai-stack — it would overwrite them
+# with generic pip wheels and lose performance tuning.
 COPY requirements.txt /tmp/requirements.txt
 RUN pip install --no-cache-dir -r /tmp/requirements.txt \
     && rm /tmp/requirements.txt
 
-# ── Workspace (owned by user) ─────────────────────────────────────────────
-RUN mkdir -p /workspace && chown ${USER_UID}:${USER_GID} /workspace
+# ── nginx proxy (required by RunPod's port routing) ───────────────────────
+COPY nginx.conf /etc/nginx/nginx.conf
+COPY readme.html /usr/share/nginx/html/readme.html
 
-# ── Entrypoint (runs as root to start sshd, then drops privileges) ─────────
+# ── Entrypoint ─────────────────────────────────────────────────────────────
 COPY start.sh /start.sh
 RUN chmod +x /start.sh
 
 ENV APP_USER=${USERNAME}
-WORKDIR /workspace
+WORKDIR /home/${USERNAME}
 
 EXPOSE 22 8888
 

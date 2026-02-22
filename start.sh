@@ -78,8 +78,6 @@ export_env_vars() {
 start_jupyter() {
   if [[ -n "${JUPYTER_PASSWORD:-}" ]]; then
     echo "Starting JupyterLab on :8889 as ${APP_USER}..."
-    mkdir -p /workspace
-    chown "${APP_USER}:${APP_USER}" /workspace
     sudo -u "${APP_USER}" nohup python3 -m jupyter lab \
       --no-browser \
       --port=8889 --ip=127.0.0.1 \
