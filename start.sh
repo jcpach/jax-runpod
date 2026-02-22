@@ -117,7 +117,6 @@ start_jupyter() {
         --ServerApp.terminado_settings='{"shell_command":["/bin/bash"]}' \
         --IdentityProvider.token="$JUPYTER_PASSWORD" \
         --ServerApp.allow_origin=* \
-        --FileContentsManager.preferred_dir="$jupyter_dir" \
         > /tmp/jupyter.log 2>&1 &
 
     echo "JupyterLab started (proxied via nginx on :8888)."
