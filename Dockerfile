@@ -1,4 +1,4 @@
-FROM ghcr.io/nvidia/jax:jax
+FROM nvcr.io/nvidia/jax:25.04-py3
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 ENV DEBIAN_FRONTEND=noninteractive

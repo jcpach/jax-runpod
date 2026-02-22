@@ -113,6 +113,8 @@ start_jupyter() {
       nohup python3 -m jupyter lab \
         --no-browser \
         --port=8889 --ip=127.0.0.1 \
+        --ServerApp.allow_remote_access=True \
+        --ServerApp.trust_xheaders=True \
         --FileContentsManager.delete_to_trash=False \
         --ServerApp.terminado_settings='{"shell_command":["/bin/bash"]}' \
         --IdentityProvider.token="$JUPYTER_PASSWORD" \
