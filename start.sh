@@ -61,6 +61,7 @@ export_env_vars() {
   printenv \
     | grep -E '^[A-Z_][A-Z0-9_]*=' \
     | grep -v '^PUBLIC_KEY=' \
+    | grep -v '^HOME=' \
     | awk -F= '{ val=$0; sub(/^[^=]*=/,"",val); print "export " $1 "=\"" val "\"" }' \
     > /etc/rp_environment || true
 
